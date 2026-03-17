@@ -1,0 +1,89 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-arm64-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  password  String
+  role      String   @default("USER") // "ADMIN", "USER"
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  accounts     Account[]
+  transactions Transaction[]
+}
+
+model Category {
+  id            String   @id @default(cuid())
+  name          String   @unique
+  monthlyBudget Float    @default(0)
+  color         String?  // Hex color for UI
+  icon          String?  // Icon name/identifier
+  
+  transactions       Transaction[]
+  scheduledPayments  ScheduledPayment[]
+}
+
+model Account {
+  id        String   @id @default(cuid())
+  name      String
+  type      String   @default("CHECKING") // "CHECKING", "SAVINGS", "CREDIT"
+  balance   Float    @default(0)
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  transactions       Transaction[] @relation("FromAccount")
+  receivedTransfers  Transaction[] @relation("ToAccount")
+  scheduledPayments  ScheduledPayment[]
+}
+
+model Transaction {
+  id          String   @id @default(cuid())
+  amount      Float
+  date        DateTime @default(now())
+  description String?
+  type        String   @default("EXPENSE") // "EXPENSE", "INCOME", "TRANSFER"
+  
+  category    Category? @relation(fields: [categoryId], references: [id])
+  categoryId  String?
+  
+  account     Account  @relation("FromAccount", fields: [accountId], references: [id])
+  accountId   String
+  
+  toAccount   Account? @relation("ToAccount", fields: [toAccountId], references: [id])
+  toAccountId String?
+  
+  user        User     @relation(fields: [userId], references: [id])
+  userId      String
+
+  createdAt   DateTime @default(now())
+}
+
+model ScheduledPayment {
+  id          String   @id @default(cuid())
+  amount      Float
+  description String
+  frequency   String   @default("MONTHLY") // "DAILY", "WEEKLY", "MONTHLY"
+  dayOfMonth  Int?     // For monthly
+  nextRunDate DateTime
+  active      Boolean  @default(true)
+  
+  category    Category? @relation(fields: [categoryId], references: [id])
+  categoryId  String?
+  
+  account     Account  @relation(fields: [accountId], references: [id])
+  accountId   String
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
