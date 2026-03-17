@@ -4,18 +4,33 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 
+export async function GET(req: Request) {
+  const session = await getServerSession(authOptions);
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const userId = (session.user as any).id;
+
+  const user = await prisma.user.findUnique({
+    where: { id: userId }
+  });
+
+  return NextResponse.json(user);
+}
+
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const userId = (session.user as any).id;
 
   try {
-    const { name, email, currentPassword, newPassword } = await req.json();
+    const { name, email, currentPassword, newPassword, savingsTarget } = await req.json();
 
     const user = await prisma.user.findUnique({ where: { id: userId } });
     if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
     const updateData: any = { name, email };
+    if (savingsTarget !== undefined) {
+      updateData.savingsTarget = parseFloat(savingsTarget) || 0;
+    }
 
     if (newPassword) {
       if (!currentPassword) {

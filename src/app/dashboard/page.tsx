@@ -19,6 +19,8 @@ export default async function DashboardPage() {
   });
 
   const totalBalance = accounts.reduce((acc, curr) => acc + curr.balance, 0);
+  const savingsTotal = accounts.filter(a => a.type === 'SAVINGS').reduce((acc, curr) => acc + curr.balance, 0);
+  const checkingTotal = accounts.filter(a => a.type === 'CHECKING').reduce((acc, curr) => acc + curr.balance, 0);
 
   // Fetch Categories and current month transactions
   const now = new Date();
@@ -45,17 +47,18 @@ export default async function DashboardPage() {
   return (
     <div>
       <div className="stats-grid">
-        <div className="card stat-card">
-          <h3>Total Balance</h3>
+        <div className="card stat-card-glow total-glow">
+          <h3>Total Combined Balance</h3>
           <div className="stat-value">£{totalBalance.toLocaleString()}</div>
         </div>
-        {accounts.map(acc => (
-          <div key={acc.id} className="card stat-card">
-            <h3>{acc.name}</h3>
-            <div className="stat-value" style={{ fontSize: "1.2rem" }}>£{acc.balance.toLocaleString()}</div>
-            <div style={{ color: "var(--muted)", fontSize: "0.8rem", marginTop: "0.2rem" }}>{acc.type}</div>
-          </div>
-        ))}
+        <div className="card stat-card-glow savings-glow">
+          <h3>Savings Liquidity</h3>
+          <div className="stat-value">£{savingsTotal.toLocaleString()}</div>
+        </div>
+        <div className="card stat-card-glow checking-glow">
+          <h3>Checking Capital</h3>
+          <div className="stat-value">£{checkingTotal.toLocaleString()}</div>
+        </div>
       </div>
 
       <div className="dashboard-main-grid">

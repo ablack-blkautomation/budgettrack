@@ -9,7 +9,7 @@ export async function POST(req: Request) {
   const userId = (session.user as any).id;
 
   try {
-    const { amount, description, type, categoryId, accountId, toAccountId, date } = await req.json();
+    const { amount, description, type, categoryId, accountId, toAccountId, date, recurring } = await req.json();
 
     if (!amount || !accountId) {
       return NextResponse.json({ error: "Amount and Account are required" }, { status: 400 });
@@ -21,6 +21,8 @@ export async function POST(req: Request) {
 
     // Execute in a transaction to ensure balance is updated
     const result = await prisma.$transaction(async (tx) => {
+      const parsedDate = date ? new Date(date) : new Date();
+
       // Create the transaction
       const newTransaction = await tx.transaction.create({
         data: {
@@ -31,9 +33,27 @@ export async function POST(req: Request) {
           accountId,
           toAccountId: type === "TRANSFER" ? toAccountId : null,
           userId,
-          date: date ? new Date(date) : new Date(),
+          date: parsedDate,
         }
       });
+
+      // Handle Recurring
+      if (recurring && type !== "TRANSFER") {
+        const nextDate = new Date(parsedDate);
+        nextDate.setMonth(nextDate.getMonth() + 1);
+        
+        await tx.scheduledPayment.create({
+          data: {
+            amount: parseFloat(amount),
+            description: description || "Recurring Payment",
+            frequency: "MONTHLY",
+            type: type, // Pass the type (INCOME or EXPENSE)
+            nextRunDate: nextDate,
+            categoryId: categoryId || null,
+            accountId,
+          }
+        });
+      }
 
       // Update account balances
       if (type === "TRANSFER") {

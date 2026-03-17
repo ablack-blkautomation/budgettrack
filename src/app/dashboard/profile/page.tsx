@@ -1,17 +1,33 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { signOut } from "next-auth/react";
 
 export default function ProfilePage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [savingsTarget, setSavingsTarget] = useState("");
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [status, setStatus] = useState({ type: "", message: "" });
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const res = await fetch("/api/profile");
+        if (res.ok) {
+          const data = await res.json();
+          setName(data.name || "");
+          setEmail(data.email || "");
+          setSavingsTarget(data.savingsTarget?.toString() || "");
+        }
+      } catch (err) {}
+    };
+    fetchProfile();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -22,7 +38,7 @@ export default function ProfilePage() {
       const res = await fetch("/api/profile", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, currentPassword, newPassword }),
+        body: JSON.stringify({ name, email, currentPassword, newPassword, savingsTarget }),
       });
 
       const data = await res.json();
@@ -66,6 +82,19 @@ export default function ProfilePage() {
           <div className="form-group">
             <label>Email Address</label>
             <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Enter email" />
+          </div>
+
+          <div className="form-group">
+            <label>Savings Target (£)</label>
+            <input 
+              type="number" 
+              value={savingsTarget} 
+              onChange={(e) => setSavingsTarget(e.target.value)} 
+              placeholder="e.g. 50000"
+            />
+            <p style={{ fontSize: "0.75rem", color: "var(--muted)", marginTop: "0.4rem" }}>
+              This target will be used to track your progress in the reports.
+            </p>
           </div>
 
           <hr style={{ margin: "2rem 0", borderColor: "var(--border)" }} />

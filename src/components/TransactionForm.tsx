@@ -23,10 +23,23 @@ export function TransactionForm({
   const [accountId, setAccountId] = useState(initialData?.accountId || "");
   const [toAccountId, setToAccountId] = useState(initialData?.toAccountId || "");
   const [date, setDate] = useState(toISODate(initialData?.date || new Date()));
+  const [recurring, setRecurring] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   
   const router = useRouter();
+
+  useEffect(() => {
+    if (initialData) {
+      setAmount(initialData.amount.toString());
+      setDescription(initialData.description || "");
+      setType(initialData.type);
+      setCategoryId(initialData.categoryId || "");
+      setAccountId(initialData.accountId);
+      setToAccountId(initialData.toAccountId || "");
+      setDate(toISODate(initialData.date));
+    }
+  }, [initialData]);
 
   useEffect(() => {
     if (accounts.length > 0 && !accountId) {
@@ -57,6 +70,7 @@ export function TransactionForm({
           accountId,
           toAccountId: type === "TRANSFER" ? toAccountId : null,
           date: new Date(date).toISOString(),
+          recurring: type !== "TRANSFER" ? recurring : false,
         }),
       });
 
@@ -164,6 +178,21 @@ export function TransactionForm({
               <option key={cat.id} value={cat.id}>{cat.name}</option>
             ))}
           </select>
+        </div>
+      )}
+
+      {!initialData && type !== "TRANSFER" && (
+        <div className="form-group" style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginTop: "0.5rem" }}>
+          <input 
+            type="checkbox" 
+            id="recurring" 
+            checked={recurring} 
+            onChange={(e) => setRecurring(e.target.checked)}
+            style={{ width: "auto" }}
+          />
+          <label htmlFor="recurring" style={{ margin: 0, cursor: "pointer", fontSize: "0.9rem" }}>
+            Set as Recurring Monthly Payment
+          </label>
         </div>
       )}
 

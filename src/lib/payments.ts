@@ -23,8 +23,8 @@ export async function processScheduledPayments(userId: string) {
       await tx.transaction.create({
         data: {
           amount: payment.amount,
-          description: `[Scheduled] ${payment.description}`,
-          type: "EXPENSE",
+          description: `[Recurring] ${payment.description}`,
+          type: payment.type,
           categoryId: payment.categoryId,
           accountId: payment.accountId,
           userId: userId,
@@ -33,10 +33,11 @@ export async function processScheduledPayments(userId: string) {
       });
 
       // Update account balance
+      const balanceChange = payment.type === "EXPENSE" ? -payment.amount : payment.amount;
       await tx.account.update({
         where: { id: payment.accountId },
         data: {
-          balance: { decrement: payment.amount }
+          balance: { increment: balanceChange }
         }
       });
 
@@ -44,6 +45,9 @@ export async function processScheduledPayments(userId: string) {
       let nextDate = new Date(payment.nextRunDate);
       if (payment.frequency === "MONTHLY") {
         nextDate.setMonth(nextDate.getMonth() + 1);
+        // JS setMonth(nextMonth) automatically rolls over to the 1st/2nd/3rd of the 
+        // month after that if the day doesn't exist (e.g. Jan 31 -> March 3).
+        // This satisfies "make it happen the next available day".
       } else if (payment.frequency === "WEEKLY") {
         nextDate.setDate(nextDate.getDate() + 7);
       } else if (payment.frequency === "DAILY") {

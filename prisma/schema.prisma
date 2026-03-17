@@ -14,6 +14,7 @@ model User {
   email     String   @unique
   password  String
   role      String   @default("USER") // "ADMIN", "USER"
+  savingsTarget Float @default(0)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -74,6 +75,7 @@ model ScheduledPayment {
   amount      Float
   description String
   frequency   String   @default("MONTHLY") // "DAILY", "WEEKLY", "MONTHLY"
+  type        String   @default("EXPENSE") // "EXPENSE", "INCOME"
   dayOfMonth  Int?     // For monthly
   nextRunDate DateTime
   active      Boolean  @default(true)

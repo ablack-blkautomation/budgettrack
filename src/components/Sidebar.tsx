@@ -97,6 +97,7 @@ export function Sidebar() {
           { name: "History", path: "/dashboard/transactions", icon: "⌛" },
           { name: "Accounts", path: "/dashboard/accounts", icon: "💳" },
           { name: "Budgets", path: "/dashboard/budgets", icon: "💰" },
+          { name: "Reports", path: "/dashboard/reports", icon: "📈" },
           { name: "Profile", path: "/dashboard/profile", icon: "👤" },
         ].map((item) => {
           const isActive = pathname === item.path;

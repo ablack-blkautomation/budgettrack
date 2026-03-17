@@ -209,3 +209,50 @@ table {
 
 .amount-expense { color: var(--danger); font-weight: 700; }
 .amount-income { color: var(--primary); font-weight: 700; }
+
+/* Glow Boxes */
+.stat-card-glow {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,0.1) !important;
+  transition: transform 0.3s ease;
+}
+
+.stat-card-glow:hover {
+  transform: translateY(-5px);
+}
+
+.stat-card-glow h3 {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 0.5rem;
+  color: rgba(255,255,255,0.6);
+}
+
+.stat-card-glow .stat-value {
+  font-size: 1.8rem !important;
+  font-weight: 800 !important;
+  font-family: var(--font-display);
+}
+
+.savings-glow {
+  background: linear-gradient(145deg, #111118 0%, #062014 100%);
+  box-shadow: 0 0 20px rgba(0, 255, 136, 0.15);
+  border-left: 4px solid #00ff88 !important;
+}
+.savings-glow .stat-value { color: #00ff88; text-shadow: 0 0 10px rgba(0, 255, 136, 0.5); }
+
+.checking-glow {
+  background: linear-gradient(145deg, #111118 0%, #2a1a05 100%);
+  box-shadow: 0 0 20px rgba(251, 191, 36, 0.15);
+  border-left: 4px solid #fbbf24 !important;
+}
+.checking-glow .stat-value { color: #fbbf24; text-shadow: 0 0 10px rgba(251, 191, 36, 0.5); }
+
+.total-glow {
+  background: linear-gradient(145deg, #111118 0%, #1e1b4b 100%);
+  box-shadow: 0 0 20px rgba(167, 139, 250, 0.15);
+  border-left: 4px solid #a78bfa !important;
+}
+.total-glow .stat-value { color: #a78bfa; text-shadow: 0 0 10px rgba(167, 139, 250, 0.5); }

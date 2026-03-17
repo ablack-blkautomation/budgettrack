@@ -13,7 +13,7 @@ export async function POST(
   const { id } = await context.params;
 
   try {
-    const { balance } = await req.json();
+    const { name, type, balance } = await req.json();
 
     const account = await prisma.account.findUnique({
       where: { id }
@@ -25,12 +25,16 @@ export async function POST(
 
     const updatedAccount = await prisma.account.update({
       where: { id },
-      data: { balance: parseFloat(balance) }
+      data: { 
+        name: name || account.name,
+        type: type || account.type,
+        balance: balance !== undefined ? parseFloat(balance) : account.balance
+      }
     });
 
     return NextResponse.json(updatedAccount);
   } catch (error) {
-    return NextResponse.json({ error: "Failed to update balance" }, { status: 500 });
+    return NextResponse.json({ error: "Failed to update account" }, { status: 500 });
   }
 }
 

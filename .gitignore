@@ -33,6 +33,7 @@ yarn-error.log*
 # Backups and sensitive data
 /2026-03-13-BK/
 dev.log
+n8n.log
 
 # Vercel
 .vercel

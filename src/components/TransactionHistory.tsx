@@ -48,18 +48,25 @@ export function TransactionHistory({
       </div>
 
       <div>
-        {selectedTransaction ? (
-          <div style={{ position: "sticky", top: "2rem" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
-              <h3 style={{ fontSize: "1rem" }}>Edit Mode</h3>
-              <button 
-                className="btn btn-secondary" 
-                style={{ fontSize: "0.7rem", padding: "0.4rem 0.8rem" }}
-                onClick={() => setSelectedTransaction(null)}
-              >
-                Cancel
-              </button>
-            </div>
+        <TransactionForm categories={categories} accounts={accounts} />
+      </div>
+
+      {selectedTransaction && (
+        <div style={{
+          position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
+          background: "rgba(0, 0, 0, 0.8)", display: "flex", alignItems: "center", justifyContent: "center",
+          zIndex: 2000, backdropFilter: "blur(5px)", padding: "1rem"
+        }}>
+          <div style={{ position: "relative", width: "100%", maxWidth: "500px" }}>
+            <button 
+              onClick={() => setSelectedTransaction(null)}
+              style={{
+                position: "absolute", top: "1rem", right: "1rem", background: "none", border: "none",
+                color: "var(--muted)", cursor: "pointer", fontSize: "1.5rem", zIndex: 1
+              }}
+            >
+              ×
+            </button>
             <TransactionForm 
               categories={categories} 
               accounts={accounts} 
@@ -67,10 +74,8 @@ export function TransactionHistory({
               onSuccess={() => setSelectedTransaction(null)}
             />
           </div>
-        ) : (
-          <TransactionForm categories={categories} accounts={accounts} />
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

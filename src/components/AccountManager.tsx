@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 
 export function AccountManager({ accounts }: { accounts: any[] }) {
   const [showAdd, setShowAdd] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingAccount, setEditingAccount] = useState<any>(null);
+  
   const [name, setName] = useState("");
   const [type, setType] = useState("CHECKING");
   const [balance, setBalance] = useState("");
@@ -34,20 +35,26 @@ export function AccountManager({ accounts }: { accounts: any[] }) {
     }
   };
 
-  const handleUpdateBalance = async (id: string, newBalance: string) => {
+  const handleUpdateAccount = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingAccount) return;
     setLoading(true);
     try {
-      const res = await fetch(`/api/accounts/${id}`, {
+      const res = await fetch(`/api/accounts/${editingAccount.id}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ balance: parseFloat(newBalance) }),
+        body: JSON.stringify({ 
+          name, 
+          type, 
+          balance: parseFloat(balance) 
+        }),
       });
       if (res.ok) {
-        setEditingId(null);
+        setEditingAccount(null);
         router.refresh();
       }
     } catch (err) {
-      alert("Failed to update balance");
+      alert("Failed to update account");
     } finally {
       setLoading(false);
     }
@@ -73,6 +80,13 @@ export function AccountManager({ accounts }: { accounts: any[] }) {
     }
   };
 
+  const openEdit = (acc: any) => {
+    setEditingAccount(acc);
+    setName(acc.name);
+    setType(acc.type);
+    setBalance(acc.balance.toString());
+  };
+
   return (
     <div style={{ display: "grid", gap: "1rem" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
@@ -80,15 +94,21 @@ export function AccountManager({ accounts }: { accounts: any[] }) {
         <button className="btn" onClick={() => setShowAdd(true)}>+ Add Account</button>
       </div>
 
-      {showAdd && (
-        <div className="card" style={{ background: "var(--card-bg-2)", marginBottom: "1rem" }}>
-          <form onSubmit={handleAddAccount}>
-            <div className="responsive-grid" style={{ marginBottom: "1rem" }}>
-              <div className="form-group" style={{ marginBottom: 0 }}>
+      {(showAdd || editingAccount) && (
+        <div style={{
+          position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
+          background: "rgba(0, 0, 0, 0.8)", display: "flex", alignItems: "center", justifyContent: "center",
+          zIndex: 1000, backdropFilter: "blur(5px)", padding: "1rem"
+        }}>
+          <div className="card" style={{ width: "100%", maxWidth: "450px" }}>
+            <h3 style={{ marginBottom: "1.5rem" }}>{editingAccount ? "Edit Account" : "Add New Account"}</h3>
+            <form onSubmit={editingAccount ? handleUpdateAccount : handleAddAccount}>
+              <div className="form-group">
                 <label>Account Name</label>
                 <input value={name} onChange={(e) => setName(e.target.value)} required placeholder="e.g. Current Account" />
               </div>
-              <div className="form-group" style={{ marginBottom: 0 }}>
+              
+              <div className="form-group">
                 <label>Type</label>
                 <select value={type} onChange={(e) => setType(e.target.value)}>
                   <option value="CHECKING">CHECKING</option>
@@ -96,16 +116,27 @@ export function AccountManager({ accounts }: { accounts: any[] }) {
                   <option value="CREDIT">CREDIT</option>
                 </select>
               </div>
-            </div>
-            <div className="form-group">
-              <label>Initial Balance (£)</label>
-              <input type="number" step="0.01" value={balance} onChange={(e) => setBalance(e.target.value)} required />
-            </div>
-            <div style={{ display: "flex", gap: "1rem" }}>
-              <button type="submit" className="btn" style={{ flex: 1 }} disabled={loading}>Save Account</button>
-              <button type="button" className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setShowAdd(false)}>Cancel</button>
-            </div>
-          </form>
+
+              <div className="form-group">
+                <label>Current Balance (£)</label>
+                <input type="number" step="0.01" value={balance} onChange={(e) => setBalance(e.target.value)} required />
+              </div>
+
+              <div style={{ display: "flex", gap: "1rem", marginTop: "2rem" }}>
+                <button type="submit" className="btn" style={{ flex: 1 }} disabled={loading}>
+                  {loading ? "Processing..." : "Save Changes"}
+                </button>
+                <button 
+                  type="button" 
+                  className="btn btn-secondary" 
+                  style={{ flex: 1 }} 
+                  onClick={() => { setShowAdd(false); setEditingAccount(null); }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
 
@@ -117,41 +148,21 @@ export function AccountManager({ accounts }: { accounts: any[] }) {
           </div>
 
           <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
-            {editingId === acc.id ? (
-              <div style={{ display: "flex", gap: "0.5rem" }}>
-                <input 
-                  type="number" 
-                  step="0.01"
-                  value={balance} 
-                  onChange={(e) => setBalance(e.target.value)}
-                  style={{ width: "120px", padding: "0.4rem" }}
-                  autoFocus
-                />
-                <button className="btn" style={{ padding: "0.4rem 0.8rem" }} onClick={() => handleUpdateBalance(acc.id, balance)} disabled={loading}>✓</button>
-                <button className="btn btn-secondary" style={{ padding: "0.4rem 0.8rem" }} onClick={() => setEditingId(null)}>✕</button>
-              </div>
-            ) : (
-              <>
-                <div style={{ fontSize: "1.2rem", fontWeight: "700", color: "var(--primary)" }}>£{acc.balance.toLocaleString()}</div>
-                <button 
-                  className="btn btn-secondary" 
-                  style={{ padding: "0.4rem 0.8rem", fontSize: "0.7rem" }}
-                  onClick={() => {
-                    setEditingId(acc.id);
-                    setBalance(acc.balance.toString());
-                  }}
-                >
-                  EDIT
-                </button>
-                <button 
-                  className="btn btn-secondary" 
-                  style={{ padding: "0.4rem 0.8rem", fontSize: "0.7rem", color: "var(--danger)", border: "none" }}
-                  onClick={() => handleDeleteAccount(acc.id)}
-                >
-                  DEL
-                </button>
-              </>
-            )}
+            <div style={{ fontSize: "1.1rem", fontWeight: "700", color: "var(--primary)" }}>£{acc.balance.toLocaleString()}</div>
+            <button 
+              className="btn btn-secondary" 
+              style={{ padding: "0.4rem 0.8rem", fontSize: "0.7rem" }}
+              onClick={() => openEdit(acc)}
+            >
+              EDIT
+            </button>
+            <button 
+              className="btn btn-secondary" 
+              style={{ padding: "0.4rem 0.8rem", fontSize: "0.7rem", color: "var(--danger)", border: "none" }}
+              onClick={() => handleDeleteAccount(acc.id)}
+            >
+              DEL
+            </button>
           </div>
         </div>
       ))}
