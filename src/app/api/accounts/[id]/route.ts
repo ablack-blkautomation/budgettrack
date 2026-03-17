@@ -19,8 +19,8 @@ export async function POST(
       where: { id }
     });
 
-    if (!account || account.userId !== userId) {
-      return NextResponse.json({ error: "Account not found or access denied" }, { status: 404 });
+    if (!account) {
+      return NextResponse.json({ error: "Account not found" }, { status: 404 });
     }
 
     const updatedAccount = await prisma.account.update({
@@ -52,8 +52,8 @@ export async function DELETE(
       where: { id }
     });
 
-    if (!account || account.userId !== userId) {
-      return NextResponse.json({ error: "Account not found or access denied" }, { status: 404 });
+    if (!account) {
+      return NextResponse.json({ error: "Account not found" }, { status: 404 });
     }
 
     // This will delete the account and cascade delete transactions if configured in schema.

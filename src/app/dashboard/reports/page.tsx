@@ -5,10 +5,12 @@ import { FinancialCharts } from "@/components/FinancialCharts";
 
 export default async function ReportsPage() {
   const session = await getServerSession(authOptions);
-  const userId = (session?.user as any)?.id;
+  if (!session) return null;
 
+  // We fetch the target from the current user, but the data is shared
   const user = await prisma.user.findUnique({
-    where: { id: userId }
+    where: { id: (session.user as any).id },
+    select: { savingsTarget: true }
   });
 
   const now = new Date();
@@ -16,7 +18,7 @@ export default async function ReportsPage() {
   const incomeHistory = [];
   const expenseHistory = [];
   
-  // Historical data for specific account types
+  // Historical data for specific account types (Global Shared)
   const savingsChangeHistory = [];
   const checkingChangeHistory = [];
 
@@ -28,11 +30,11 @@ export default async function ReportsPage() {
 
     // Global income/expense
     const income = await prisma.transaction.aggregate({
-      where: { userId, type: 'INCOME', date: { gte: start, lte: end } },
+      where: { type: 'INCOME', date: { gte: start, lte: end } },
       _sum: { amount: true }
     });
     const expense = await prisma.transaction.aggregate({
-      where: { userId, type: 'EXPENSE', date: { gte: start, lte: end } },
+      where: { type: 'EXPENSE', date: { gte: start, lte: end } },
       _sum: { amount: true }
     });
 
@@ -41,20 +43,19 @@ export default async function ReportsPage() {
 
     // Savings accounts changes
     const savingsIncome = await prisma.transaction.aggregate({
-      where: { userId, type: 'INCOME', account: { type: 'SAVINGS' }, date: { gte: start, lte: end } },
+      where: { type: 'INCOME', account: { type: 'SAVINGS' }, date: { gte: start, lte: end } },
       _sum: { amount: true }
     });
     const savingsExpense = await prisma.transaction.aggregate({
-      where: { userId, type: 'EXPENSE', account: { type: 'SAVINGS' }, date: { gte: start, lte: end } },
+      where: { type: 'EXPENSE', account: { type: 'SAVINGS' }, date: { gte: start, lte: end } },
       _sum: { amount: true }
     });
-    // For transfers into savings
     const savingsTransfersIn = await prisma.transaction.aggregate({
-      where: { userId, type: 'TRANSFER', toAccount: { type: 'SAVINGS' }, date: { gte: start, lte: end } },
+      where: { type: 'TRANSFER', toAccount: { type: 'SAVINGS' }, date: { gte: start, lte: end } },
       _sum: { amount: true }
     });
     const savingsTransfersOut = await prisma.transaction.aggregate({
-      where: { userId, type: 'TRANSFER', account: { type: 'SAVINGS' }, date: { gte: start, lte: end } },
+      where: { type: 'TRANSFER', account: { type: 'SAVINGS' }, date: { gte: start, lte: end } },
       _sum: { amount: true }
     });
 
@@ -65,19 +66,19 @@ export default async function ReportsPage() {
 
     // Checking accounts changes
     const checkingIncome = await prisma.transaction.aggregate({
-      where: { userId, type: 'INCOME', account: { type: 'CHECKING' }, date: { gte: start, lte: end } },
+      where: { type: 'INCOME', account: { type: 'CHECKING' }, date: { gte: start, lte: end } },
       _sum: { amount: true }
     });
     const checkingExpense = await prisma.transaction.aggregate({
-      where: { userId, type: 'EXPENSE', account: { type: 'CHECKING' }, date: { gte: start, lte: end } },
+      where: { type: 'EXPENSE', account: { type: 'CHECKING' }, date: { gte: start, lte: end } },
       _sum: { amount: true }
     });
     const checkingTransfersIn = await prisma.transaction.aggregate({
-      where: { userId, type: 'TRANSFER', toAccount: { type: 'CHECKING' }, date: { gte: start, lte: end } },
+      where: { type: 'TRANSFER', toAccount: { type: 'CHECKING' }, date: { gte: start, lte: end } },
       _sum: { amount: true }
     });
     const checkingTransfersOut = await prisma.transaction.aggregate({
-      where: { userId, type: 'TRANSFER', account: { type: 'CHECKING' }, date: { gte: start, lte: end } },
+      where: { type: 'TRANSFER', account: { type: 'CHECKING' }, date: { gte: start, lte: end } },
       _sum: { amount: true }
     });
 
@@ -88,7 +89,7 @@ export default async function ReportsPage() {
   }
 
   // Calculate current balances to work backwards
-  const accounts = await prisma.account.findMany({ where: { userId } });
+  const accounts = await prisma.account.findMany();
   const currentTotal = accounts.reduce((acc, a) => acc + a.balance, 0);
   const currentSavings = accounts.filter(a => a.type === 'SAVINGS').reduce((acc, a) => acc + a.balance, 0);
   const currentChecking = accounts.filter(a => a.type === 'CHECKING').reduce((acc, a) => acc + a.balance, 0);
@@ -131,7 +132,7 @@ export default async function ReportsPage() {
   // Categories logic
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
   const categories = await prisma.category.findMany({
-    include: { transactions: { where: { userId, type: 'EXPENSE', date: { gte: startOfMonth } } } }
+    include: { transactions: { where: { type: 'EXPENSE', date: { gte: startOfMonth } } } }
   });
 
   const colorPalette = ['#00ff88', '#a78bfa', '#fbbf24', '#3b82f6', '#f472b6', '#2dd4bf', '#fb7185', '#818cf8'];
@@ -155,7 +156,7 @@ export default async function ReportsPage() {
     <div style={{ display: "grid", gap: "2rem" }}>
       <header>
         <h1 style={{ fontSize: "1.8rem", fontWeight: "800" }}>Financial Intelligence</h1>
-        <p style={{ color: "var(--muted)" }}>Strategic overview of your capital flow.</p>
+        <p style={{ color: "var(--muted)" }}>Strategic overview of the collective capital flow.</p>
       </header>
 
       <FinancialCharts 
@@ -171,7 +172,7 @@ export default async function ReportsPage() {
       />
 
       <div className="card">
-        <h2 style={{ marginBottom: "1.5rem", fontSize: "1.1rem" }}>Summary Report</h2>
+        <h2 style={{ marginBottom: "1.5rem", fontSize: "1.1rem" }}>Shared Summary Report</h2>
         <div className="responsive-grid">
           <div>
             <h3 style={{ color: "var(--muted)", fontSize: "0.8rem", marginBottom: "0.5rem" }}>SAVINGS GOAL PROGRESS</h3>

@@ -6,23 +6,20 @@ import { DashboardHistory } from "@/components/DashboardHistory";
 
 export default async function DashboardPage() {
   const session = await getServerSession(authOptions);
-  const userId = (session?.user as any)?.id;
+  // Still check for session to ensure only authorized users enter the matrix
+  if (!session) return null;
 
-  // Process any due scheduled payments
-  if (userId) {
-    await processScheduledPayments(userId);
-  }
+  // Process any due scheduled payments (Global process)
+  await processScheduledPayments();
 
-  // Fetch Accounts
-  const accounts = await prisma.account.findMany({
-    where: { userId }
-  });
+  // Fetch ALL Accounts (Shared)
+  const accounts = await prisma.account.findMany();
 
   const totalBalance = accounts.reduce((acc, curr) => acc + curr.balance, 0);
   const savingsTotal = accounts.filter(a => a.type === 'SAVINGS').reduce((acc, curr) => acc + curr.balance, 0);
   const checkingTotal = accounts.filter(a => a.type === 'CHECKING').reduce((acc, curr) => acc + curr.balance, 0);
 
-  // Fetch Categories and current month transactions
+  // Fetch Global Categories and current month transactions
   const now = new Date();
   const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
   
@@ -30,15 +27,13 @@ export default async function DashboardPage() {
     include: {
       transactions: {
         where: {
-          date: { gte: firstDayOfMonth },
-          userId: userId
+          date: { gte: firstDayOfMonth }
         }
       }
     }
   });
 
   const recentTransactions = await prisma.transaction.findMany({
-    where: { userId },
     take: 10,
     orderBy: { date: 'desc' },
     include: { category: true, account: true, toAccount: true, user: true }

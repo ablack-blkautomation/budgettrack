@@ -5,16 +5,15 @@ import { TransactionHistory } from "@/components/TransactionHistory";
 
 export default async function TransactionsPage() {
   const session = await getServerSession(authOptions);
-  const userId = (session?.user as any)?.id;
+  if (!session) return null;
 
   const [categories, accounts, transactions] = await Promise.all([
     prisma.category.findMany(),
-    prisma.account.findMany({ where: { userId } }),
+    prisma.account.findMany(),
     prisma.transaction.findMany({
-      where: { userId },
       orderBy: { date: 'desc' },
       include: { category: true, account: true, toAccount: true, user: true },
-      take: 50
+      take: 100 // Increased for shared view
     })
   ]);
 

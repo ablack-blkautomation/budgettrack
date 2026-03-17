@@ -17,7 +17,6 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     });
 
     if (!existingTx) return NextResponse.json({ error: "Transaction not found" }, { status: 404 });
-    if (existingTx.userId !== userId) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
     const result = await prisma.$transaction(async (tx) => {
       // 1. Revert previous balance changes
@@ -96,7 +95,6 @@ export async function DELETE(req: Request, { params }: { params: { id: string } 
     });
 
     if (!existingTx) return NextResponse.json({ error: "Transaction not found" }, { status: 404 });
-    if (existingTx.userId !== userId) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
     await prisma.$transaction(async (tx) => {
       // Revert balance changes

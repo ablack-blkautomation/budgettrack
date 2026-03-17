@@ -1,17 +1,20 @@
 import { prisma } from "./prisma";
 
-export async function processScheduledPayments(userId: string) {
+/**
+ * Process all scheduled payments due across the entire system.
+ * This runs when any user visits the dashboard.
+ */
+export async function processScheduledPayments() {
   const now = new Date();
   
-  // Find all active scheduled payments that are due
+  // Find all active scheduled payments that are due (System-wide)
   const duePayments = await prisma.scheduledPayment.findMany({
     where: {
       active: true,
-      nextRunDate: { lte: now },
-      account: { userId: userId }
+      nextRunDate: { lte: now }
     },
     include: {
-      account: true
+      account: true // Need account to update balance and know user
     }
   });
 
@@ -27,7 +30,7 @@ export async function processScheduledPayments(userId: string) {
           type: payment.type,
           categoryId: payment.categoryId,
           accountId: payment.accountId,
-          userId: userId,
+          userId: payment.account.userId, // Attributed to account owner
           date: payment.nextRunDate,
         }
       });
@@ -45,9 +48,6 @@ export async function processScheduledPayments(userId: string) {
       let nextDate = new Date(payment.nextRunDate);
       if (payment.frequency === "MONTHLY") {
         nextDate.setMonth(nextDate.getMonth() + 1);
-        // JS setMonth(nextMonth) automatically rolls over to the 1st/2nd/3rd of the 
-        // month after that if the day doesn't exist (e.g. Jan 31 -> March 3).
-        // This satisfies "make it happen the next available day".
       } else if (payment.frequency === "WEEKLY") {
         nextDate.setDate(nextDate.getDate() + 7);
       } else if (payment.frequency === "DAILY") {
