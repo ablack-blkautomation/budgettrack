@@ -19,6 +19,14 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Destination account is required for transfers" }, { status: 400 });
     }
 
+    // Validate account type for expenses
+    if (type === "EXPENSE") {
+      const account = await prisma.account.findUnique({ where: { id: accountId } });
+      if (account?.type !== "CHECKING") {
+        return NextResponse.json({ error: "Expenses can only be posted from Checking accounts" }, { status: 400 });
+      }
+    }
+
     // Execute in a transaction to ensure balance is updated
     const result = await prisma.$transaction(async (tx) => {
       const parsedDate = date ? new Date(date) : new Date();

@@ -16,10 +16,9 @@ export default async function DashboardLayout({
     redirect("/login");
   }
 
-  const userId = (session.user as any).id;
   const [categories, accounts] = await Promise.all([
     prisma.category.findMany(),
-    prisma.account.findMany({ where: { userId } })
+    prisma.account.findMany()
   ]);
 
   return (

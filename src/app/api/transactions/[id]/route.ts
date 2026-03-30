@@ -3,11 +3,14 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "../../auth/[...nextauth]/route";
 import { NextResponse } from "next/server";
 
-export async function PATCH(req: Request, { params }: { params: { id: string } }) {
+export async function PATCH(
+  req: Request, 
+  { params }: { params: Promise<{ id: string }> }
+) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const userId = (session.user as any).id;
-  const transactionId = params.id;
+  const { id: transactionId } = await params;
 
   try {
     const { amount, description, type, categoryId, accountId, toAccountId, date } = await req.json();
@@ -17,6 +20,14 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     });
 
     if (!existingTx) return NextResponse.json({ error: "Transaction not found" }, { status: 404 });
+
+    // Validate account type for expenses
+    if (type === "EXPENSE") {
+      const account = await prisma.account.findUnique({ where: { id: accountId } });
+      if (account?.type !== "CHECKING") {
+        return NextResponse.json({ error: "Expenses can only be posted from Checking accounts" }, { status: 400 });
+      }
+    }
 
     const result = await prisma.$transaction(async (tx) => {
       // 1. Revert previous balance changes
@@ -83,11 +94,14 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   }
 }
 
-export async function DELETE(req: Request, { params }: { params: { id: string } }) {
+export async function DELETE(
+  req: Request, 
+  { params }: { params: Promise<{ id: string }> }
+) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const userId = (session.user as any).id;
-  const transactionId = params.id;
+  const { id: transactionId } = await params;
 
   try {
     const existingTx = await prisma.transaction.findUnique({

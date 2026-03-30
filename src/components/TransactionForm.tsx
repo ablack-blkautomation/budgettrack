@@ -41,14 +41,25 @@ export function TransactionForm({
     }
   }, [initialData]);
 
+  const filteredAccounts = accounts.filter(acc => {
+    if (type === "EXPENSE") return acc.type === "CHECKING";
+    return true; // INCOME and TRANSFER can use any account
+  });
+
   useEffect(() => {
-    if (accounts.length > 0 && !accountId) {
-      setAccountId(accounts[0].id);
+    if (filteredAccounts.length > 0) {
+      // If current accountId is not in filtered accounts, switch it
+      if (!accountId || !filteredAccounts.find(a => a.id === accountId)) {
+        setAccountId(filteredAccounts[0].id);
+      }
     }
+  }, [type, filteredAccounts, accountId]);
+
+  useEffect(() => {
     if (accounts.length > 1 && !toAccountId) {
       setToAccountId(accounts[1].id);
     }
-  }, [accounts, accountId, toAccountId]);
+  }, [accounts, toAccountId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -147,7 +158,7 @@ export function TransactionForm({
       <div className="form-group">
         <label>{type === "TRANSFER" ? "From Account" : "Account"}</label>
         <select value={accountId} onChange={(e) => setAccountId(e.target.value)} required>
-          {accounts.map(acc => (
+          {filteredAccounts.map(acc => (
             <option key={acc.id} value={acc.id}>{acc.name} (£{acc.balance.toLocaleString()})</option>
           ))}
         </select>

@@ -13,7 +13,6 @@ function parseCSV(filePath) {
   const headers = lines[0].split(',').map(h => h.trim().replace('*', ''));
   
   return lines.slice(1).map(line => {
-    // Simple CSV parser that handles quotes if any (though sample doesn't show them)
     const values = [];
     let current = '';
     let inQuotes = false;
@@ -37,45 +36,43 @@ function parseCSV(filePath) {
 }
 
 async function main() {
-  console.log('Starting historical data import...');
+  console.log('Starting historical data import for Alastair & Laura...');
 
   const hashedPassword = await bcrypt.hash('BudgetTrack2026!', 10);
 
-  // 1. Create Users
+  // 1. Get/Create Users
   const alastair = await prisma.user.upsert({
-    where: { email: 'admin@example.com' },
+    where: { email: 'alastairblack2@gmail.com' },
     update: { role: 'ADMIN' },
     create: {
-      email: 'admin@example.com',
-      name: 'Admin User',
+      email: 'alastairblack2@gmail.com',
+      name: 'Alastair Black',
       password: hashedPassword,
       role: 'ADMIN',
     },
   });
 
-  const partner = await prisma.user.upsert({
-    where: { email: 'partner@example.com' },
+  const laura = await prisma.user.upsert({
+    where: { email: 'laura1121@hotmail.co.uk' },
     update: {},
     create: {
-      email: 'partner@example.com',
-      name: 'Partner',
+      email: 'laura1121@hotmail.co.uk',
+      name: 'Laura',
       password: hashedPassword,
       role: 'USER',
     },
   });
 
-  console.log('Users created.');
+  console.log('Users verified.');
 
   // 2. Import Categories
   const categoriesData = parseCSV(path.join(BK_DIR, 'sure_categories.csv'));
   const categoryMap = new Map();
 
   for (const cat of categoriesData) {
-    const isIncome = cat.classification === 'income';
-    // We'll use a default budget of 0 for now as it's not in the CSV
     const created = await prisma.category.upsert({
       where: { name: cat.name },
-      update: { color: cat.color || '#00ff88' },
+      update: {},
       create: { 
         name: cat.name, 
         color: cat.color || '#00ff88',
@@ -91,9 +88,8 @@ async function main() {
   const accountMap = new Map();
 
   for (const acc of accountsData) {
-    // Logic to assign user: AB -> Alastair, LK -> Partner, others -> Alastair
     let userId = alastair.id;
-    if (acc.Name === 'LK') userId = partner.id;
+    if (acc.Name === 'LK') userId = laura.id;
     
     const type = acc.Account_type === 'Savings' ? 'SAVINGS' : 'CHECKING';
     
@@ -119,14 +115,9 @@ async function main() {
     
     if (!accountId) continue;
 
-    // Parse date MM/DD/YYYY
     const [m, d, y] = tx.date.split('/');
     const date = new Date(parseInt(y), parseInt(m) - 1, parseInt(d));
 
-    const amount = Math.abs(parseFloat(tx.amount));
-    // Determine type: Income if amount is positive in original data? 
-    // Looking at sample: Starting Balance Wage is positive. Usual expenses usually negative?
-    // In our CSV, amount is signed? Head showed positive 1523.36 for Wage.
     const originalAmount = parseFloat(tx.amount);
     const type = originalAmount >= 0 ? 'INCOME' : 'EXPENSE';
 
@@ -136,7 +127,7 @@ async function main() {
         description: tx.name + (tx.notes ? ` (${tx.notes})` : ''),
         type: type,
         date: date,
-        userId: alastair.id, // Assign to Alastair as creator for history
+        userId: alastair.id, // Linked to Alastair as primary importer
         accountId: accountId,
         categoryId: categoryId || null
       }
